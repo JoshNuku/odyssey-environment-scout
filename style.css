@@ -1,0 +1,134 @@
+*{
+    margin:0;
+    padding:0;
+    position:relative;
+}
+.dashboard{
+    display:grid;
+    grid-template-columns: repeat(2,1fr);
+    gap:20px;
+    padding:20px;
+    background-color:gold;
+}
+.panel{
+    background-color: #fff;
+    border:1px solid #ddd;
+    padding:20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0, 0.1);
+}
+.control-panel{
+    grid-column: 1;
+}
+.status-panel{
+    grid-column: 2;
+}
+.telementary-panel{
+    grid-column: 1;
+}
+.history-panel{
+
+}
+#forward-button{
+    width: 200px;
+    height: 10;
+}
+#left-button{
+    width: 200px;
+    height: 10; 
+}
+#stop-button{
+    width: 200px;
+    height: 10;
+    background-color: red;
+}
+#right-button{
+    width: 200px;
+    height: 10;
+}
+#backward-icon{
+    width: 200px;
+    height: 10;
+}
+.d-pad button{
+    width:50px;
+    height:50px;
+    margin:10px;
+    font-size: 20px;
+    justify-content:space-between;
+    border-radius: 20px;
+}
+.d-pad{
+    display:"flex";
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+   
+}
+.mode-selector button{
+    margin: 10px;
+    padding: 10px;
+}
+#view-history-btn{
+    padding: 10px;
+    background-color: #4CAF50;
+    color:#fff;
+    border:none;
+    border-radius:5px;
+    cursor: pointer;
+}
+.Title{
+    background-color:rgb(41, 96, 184);
+    text-align: center;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+.panel-list{
+    list-style: none;
+}
+.nav-bar ul{
+    list-style: none;
+    text-align:end ;
+    align-content: space-between;
+    display: flex;
+    gap:10px;
+}
+.head{
+    text-align: center;
+    background-color:rgb(41, 96, 184);
+}
+.nav-bar{
+    background-color:#efe11b;
+    justify-content:space-between;
+    align-items: center;
+    display:flex;
+    height: 50px;
+    color: black;
+    padding-left:390px;
+    
+}
+.Hero{
+    background-image:url("./asset/Screenshot 2025-09-29 120238.png");
+    background-repeat:no-repeat;
+    display:grid;
+    grid-template-columns: repeat(2,0.5fr);
+    align-items: center;
+    gap: 10px;
+}
+.hero{
+    font-weight:900;
+    font-size: bold;
+    font-style: italic;
+}
+.dash{
+    width:fit-content;
+    padding :8px 20px;
+    border-radius :30px;
+    background-color:#efcf1b;
+    color: rgb(12, 83, 60);
+    cursor: pointer;
+    transition: all 0.3s ease-in;
+}
+.dash:hover{
+    background-color: rgb(41, 96, 184);
+    color: white;
+}
