@@ -1,7 +1,7 @@
 async function loadHistory() {
     const res = await fetch('/api/history');
     const data = await res.json();
-    const labels = data.labels;
+    const labels = data.labels || [];
     const ctx1 = document.getElementById('tempChart');
     new Chart(ctx1, 
         { 
@@ -10,7 +10,7 @@ async function loadHistory() {
                 labels, 
                 datasets:[{ 
                     label:'Temperature (°C)', 
-                    data:data.temperature_c, 
+                    data: data.temperature_c || data.temperature || [], 
                     borderColor:'#5b8cff', 
                     tension: 0.3 
                 }] 
@@ -29,7 +29,7 @@ async function loadHistory() {
                 labels, 
                 datasets:[{ 
                     label:'Humidity (%)', 
-                    data: data.humidity_percent, 
+                    data: data.humidity_percent || data.humidity || [], 
                     borderColor:'#22d3ee', 
                     tension: 0.3 
                 }] 
@@ -48,7 +48,7 @@ async function loadHistory() {
                 labels, 
                 datasets:[{ 
                     label:'Air Quality (Raw)', 
-                    data:data.air_quality_raw, 
+                    data: data.air_quality_raw || data.air_quality || [], 
                     borderColor:'#a78bfa', tension:.3 
                 } ] 
             }, 

@@ -48,21 +48,29 @@ async function poll() {
             if (ls) ls.textContent = 'Last Seen: ' + data.last_seen;
         }
         if (power) {
-            if (data.forward_distance_cm !== undefined) {
+            // support multiple possible field names coming from MQTT vs CSV
+            const forward = (data.forward_distance_cm !== undefined) ? data.forward_distance_cm : data.forward_distance;
+            if (forward !== undefined) {
                 const el = document.getElementById('forward-distance');
-                if (el) el.textContent = data.forward_distance_cm + ' cm';
+                if (el) el.textContent = String(forward) + ' cm';
             }
-            if (data.temperature_c !== undefined) {
+
+            const temp = (data.temperature_c !== undefined) ? data.temperature_c : data.temperature;
+            if (temp !== undefined) {
                 const el = document.getElementById('temperature');
-                if (el) el.textContent = data.temperature_c + ' °C';
+                if (el) el.textContent = Number(temp).toFixed(2) + ' °C';
             }
-            if (data.humidity_percent !== undefined) {
+
+            const hum = (data.humidity_percent !== undefined) ? data.humidity_percent : data.humidity;
+            if (hum !== undefined) {
                 const el = document.getElementById('humidity');
-                if (el) el.textContent = data.humidity_percent + ' %';
+                if (el) el.textContent = Number(hum).toFixed(2) + ' %';
             }
-            if (data.air_quality_raw !== undefined) {
+
+            const aq = (data.air_quality_raw !== undefined) ? data.air_quality_raw : data.air_quality;
+            if (aq !== undefined) {
                 const el = document.getElementById('air-quality');
-                if (el) el.textContent = String(data.air_quality_raw);
+                if (el) el.textContent = String(aq);
             }
         }
     } catch (e) { /* ignore */ }
