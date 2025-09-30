@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odyssey Mission History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="topbar"><div class="title">Odyssey Mission History</div><div class="spacer"></div></div>
+    <main class="content" style="padding:16px 24px 32px;">
+        <section class="cards" style="grid-template-columns: repeat(12, 1fr);">
+            <div class="card" style="grid-column: span 12;">
+                <canvas id="tempChart" height="120"></canvas>
+            </div>
+            <div class="card" style="grid-column: span 12;">
+                <canvas id="humChart" height="120"></canvas>
+            </div>
+            <div class="card" style="grid-column: span 12;">
+                <canvas id="aqChart" height="120"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/history.js') }}"></script>
+</body>
+</html>
+
+

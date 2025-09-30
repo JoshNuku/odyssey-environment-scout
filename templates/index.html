@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Odyssey</div>
+            <div class="search">
+                <input type="text" placeholder="Search…" aria-label="Search">
+            </div>
+            <nav class="menu">
+                <a class="menu-item active">Dashboard</a>
+                <a class="menu-item" href="#" onclick="window.open('/history','_blank')">History</a>
+            </nav>
+
+            <div class="panel-title">Rover Controls</div>
+            <div class="ps-controls">
+                <div class="dpad">
+                    <button class="btn dpad-up" data-direction="forward" title="Forward">▲</button>
+                    <div class="dpad-middle">
+                        <button class="btn dpad-left" data-direction="left" title="Left">◀</button>
+                        <button class="btn dpad-right" data-direction="right" title="Right">▶</button>
+                    </div>
+                    <button class="btn dpad-down" data-direction="backward" title="Backward">▼</button>
+                </div>
+                <button class="btn stop" data-direction="stop" title="Stop">STOP</button>
+            </div>
+
+            <div class="mode-selector">
+                <button class="chip mode-button active" data-mode="manual">Manual</button>
+                <button class="chip mode-button" data-mode="assisted">Assisted</button>
+                <button class="chip mode-button" data-mode="autonomous">Autonomous</button>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="content">
+            <header class="topbar">
+                <div class="title">Mission Control Dashboard</div>
+                <div class="spacer"></div>
+                <button class="link" onclick="window.open('/history','_blank')">View Mission History</button>
+            </header>
+
+            <section class="cards">
+                <div class="card status">
+                    <h3>Status</h3>
+                    <p id="power-state" class="power off">Rover Power: OFF</p>
+                    <p id="current-mode">Current Mode: Manual</p>
+                    <p id="last-seen">Last Seen: —</p>
+                </div>
+                <div class="card telemetry">
+                    <h3>Live Telemetry</h3>
+                    <ul class="kv">
+                        <li><span>Forward Distance</span><strong id="forward-distance">0 cm</strong></li>
+                        <li><span>Temperature</span><strong id="temperature">0 °C</strong></li>
+                        <li><span>Humidity</span><strong id="humidity">0 %</strong></li>
+                        <li><span>Air Quality</span><strong id="air-quality">0</strong></li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
