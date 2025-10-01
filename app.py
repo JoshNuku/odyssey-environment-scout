@@ -88,7 +88,28 @@ def on_message(client, userdata, msg):
             rover_state['temperature_c'] = payload.get('temperature_c', rover_state['temperature_c'])
             rover_state['humidity_percent'] = payload.get('humidity_percent', rover_state['humidity_percent'])
             rover_state['air_quality_raw'] = payload.get('air_quality_raw', rover_state['air_quality_raw'])
-        log_data(rover_state)
+            # Convert air_quality_raw to ppm using 3.5V reference
+            raw_val = rover_state['air_quality_raw']
+            try:
+                rover_state['air_quality_ppm'] = (float(raw_val) / 1023.0) * 3.5
+            except Exception:
+                rover_state['air_quality_ppm'] = 0.0
+        # Only log if power is ON and all telemetry fields are strictly positive
+        power_val = payload.get('power')
+        is_power_on = power_val in (True, 'ON', 'on', 'true', 1)
+        telemetry_fields = [
+            payload.get('forward_distance_cm'),
+            payload.get('temperature_c'),
+            payload.get('humidity_percent'),
+            payload.get('air_quality_raw')
+        ]
+        def is_positive(x):
+            try:
+                return float(x) > 0
+            except Exception:
+                return False
+        if is_power_on and all(is_positive(x) for x in telemetry_fields):
+            log_data(rover_state)
     except Exception as e:
         print('Error processing telemetry message:', e)
 
@@ -180,6 +201,10 @@ def read_series_from_csv(limit: int = 300):
 # --- Flask Routes ---
 @app.route('/')
 def index():
+    return render_template('home.html')
+
+@app.route('/dashboard')
+def dashboard():
     return render_template('index.html')
 
 @app.route('/history')
@@ -190,10 +215,19 @@ def history():
 def api_data():
     with state_lock:
         state = dict(rover_state)
+    # Replace air_quality_raw with air_quality_ppm for dashboard display
+    if 'air_quality_ppm' in state:
+        state['air_quality_raw'] = state['air_quality_ppm']
     # Prefer live telemetry; if not available try CSV. Do NOT fabricate random data.
     if not state['last_seen'] or state['last_seen'] == '—':
         latest = read_latest_from_csv()
         if latest:
+            # Replace air_quality_raw with ppm if possible
+            try:
+                raw_val = latest.get('air_quality_raw', 0)
+                latest['air_quality_raw'] = (float(raw_val) / 1023.0) * 3.5
+            except Exception:
+                latest['air_quality_raw'] = 0.0
             return jsonify(latest)
         # No live telemetry and no CSV available — return the current in-memory state (may be defaults)
         return jsonify(state)

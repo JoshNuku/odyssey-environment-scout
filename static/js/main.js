@@ -117,7 +117,8 @@ document.querySelectorAll(".mode-selector .mode-button").forEach((btn) =>
     localModeOverride.mode = mode;
     localModeOverride.expires = Date.now() + 5000;
 
-    const label = "Current Mode: " + mode.charAt(0).toUpperCase() + mode.slice(1);
+    const label =
+      "Current Mode: " + mode.charAt(0).toUpperCase() + mode.slice(1);
     const cm = document.getElementById("current-mode");
     if (cm) cm.textContent = label;
     await postJson("/command", { command: "mode_change", mode });
@@ -213,7 +214,10 @@ async function handleButtonPress(index) {
       break;
     case 0: // A
       console.log("A pressed → Autonomous mode");
-      await postJson("/command", { command: "mode_change", mode: "autonomous" });
+      await postJson("/command", {
+        command: "mode_change",
+        mode: "autonomous",
+      });
       setActiveModeButton("autonomous");
       break;
     case 9: // Start/Pause
@@ -309,7 +313,13 @@ async function poll() {
           : data.air_quality;
       if (aq !== undefined) {
         const el = document.getElementById("air-quality");
-        if (el) el.textContent = String(aq);
+        if (el) {
+          // display both raw and estimated ppm
+          const ppm = aqRawToPpm(aq);
+          el.textContent = `${ppm} ppm`;
+          el.title = `Raw: ${aq}`;
+          el.classList.add("aq-ppm");
+        }
       }
     }
   } catch (e) {
@@ -318,3 +328,24 @@ async function poll() {
 }
 poll();
 setInterval(poll, 1000);
+
+// Theme toggle
+const themeToggle = document.getElementById("theme-toggle");
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    document.documentElement.classList.toggle("light-theme");
+    const isLight = document.documentElement.classList.contains("light-theme");
+    themeToggle.textContent = isLight ? "Dark" : "Light";
+  });
+}
+
+// Convert raw ADC value to approximate ppm using 3.5V reference
+function aqRawToPpm(raw) {
+  // raw expected 0..32767 (ADS1115 16-bit signed positive range used here), scale to voltage
+  const maxRaw = 32767;
+  const refV = 3.5; // 3.5V reference per request
+  const voltage = (Number(raw) / maxRaw) * refV;
+  // Simple linear conversion: map 0..3.5V -> 0..1000 ppm (tunable)
+  const ppm = (voltage / refV) * 1000.0;
+  return Math.round(ppm);
+}

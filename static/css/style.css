@@ -7,6 +7,76 @@
   --danger: #ef4444;
   --ok: #16a34a;
 }
+
+/* Remove light theme */
+.light-theme {
+  display: none !important;
+}
+
+/* Highlighted status card */
+.card.status.highlight {
+  background: linear-gradient(180deg, #1b2540 60%, #0b1220 100%);
+  border: 2px solid var(--accent);
+  box-shadow: 0 8px 32px rgba(91, 140, 255, 0.1);
+  color: #fff;
+  margin-bottom: 18px;
+  position: relative;
+}
+.card.status.highlight:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 18px;
+  background: linear-gradient(
+    90deg,
+    rgba(91, 140, 255, 0.08),
+    rgba(34, 211, 238, 0.08)
+  );
+  z-index: 0;
+}
+.card.status.highlight > * {
+  position: relative;
+  z-index: 1;
+}
+.card.telemetry {
+  background: linear-gradient(90deg, #111a2e 80%, #0b1220 100%);
+  border: 1.5px solid var(--accent2);
+  box-shadow: 0 4px 18px rgba(34, 211, 238, 0.08);
+}
+.card.telemetry h2 {
+  color: var(--accent2);
+}
+.cards {
+  gap: 24px;
+  padding: 24px 24px 32px;
+}
+.card {
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+.kv li {
+  font-size: 16px;
+  padding: 14px 16px;
+}
+.card.status .power.on {
+  color: var(--ok);
+}
+.card.status .power.off {
+  color: var(--danger);
+}
+.card.status p {
+  font-size: 16px;
+  margin: 8px 0;
+}
+.card.status #last-seen {
+  font-size: 14px;
+  color: var(--muted);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -16,6 +86,12 @@ body {
     "Apple Color Emoji", "Segoe UI Emoji";
   background: var(--bg);
   color: #e6eaf2;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+/* light theme text color override */
+.light-theme body {
+  color: #0b1220;
 }
 
 .layout {
@@ -307,9 +383,31 @@ body {
   color: #fff;
 }
 .power-btn-mobile.off {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
   box-shadow: none;
+}
+
+/* AQ unit note */
+.aq-ppm {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.icon-status,
+.icon-telemetry,
+.icon-power,
+.icon-mode,
+.icon-clock,
+.icon-distance,
+.icon-temp,
+.icon-humidity,
+.icon-air {
+  font-size: 1.3em;
+  vertical-align: middle;
+  margin-right: 7px;
+  color: var(--accent2);
+  filter: drop-shadow(0 2px 4px rgba(91, 140, 255, 0.1));
 }
 
 @media (max-width: 1000px) {
@@ -347,10 +445,30 @@ body {
     left: 4px;
     top: 4px;
   }
-  .topbar .title { order: 0; }
-  .topbar .spacer { order: 2; }
-  .topbar .link { order: 3; }
-  .power-btn-mobile { display: inline-flex; align-items: center; gap: 8px; }
+  .topbar .title {
+    order: 0;
+  }
+  .topbar .spacer {
+    order: 2;
+  }
+  .topbar .link {
+    order: 3;
+  }
+  .power-btn-mobile {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
   /* hide the iOS toggle on small screens to avoid duplicate controls */
-  .topbar .ios-toggle { display: none; }
+  .topbar .ios-toggle {
+    display: none;
+  }
+}
+
+.card.status.highlight .kv li {
+  justify-content: flex-start;
+  gap: 18px;
+}
+.card.status.highlight .kv strong {
+  margin-left: 0;
 }
