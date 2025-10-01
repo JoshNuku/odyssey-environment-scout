@@ -10,82 +10,86 @@ function postJson(url, body) {
 
 let localModeOverride = { mode: null, expires: 0 };
 
-// Power toggle (use the hidden checkbox inside the iOS-style toggle)
+// Power toggle
 const powerCheckbox = document.getElementById("power-toggle-checkbox");
 const powerMobileBtn = document.getElementById("power-toggle-mobile");
 let ignorePowerCheckboxChange = false;
+
 if (powerCheckbox) {
   powerCheckbox.addEventListener("change", async () => {
     if (ignorePowerCheckboxChange) return;
     const checked = powerCheckbox.checked;
     const cmd = checked ? "power_on" : "power_off";
-    // optimistic UI change
+
     const ps = document.getElementById("power-state");
     if (ps) {
       ps.textContent = "Rover Power: " + (checked ? "ON" : "OFF");
       ps.classList.toggle("on", checked);
       ps.classList.toggle("off", !checked);
     }
-    // update unified button UI
+
     if (powerMobileBtn) {
-      powerMobileBtn.classList.toggle('on', checked);
-      powerMobileBtn.classList.toggle('off', !checked);
-      powerMobileBtn.setAttribute('aria-pressed', String(checked));
-      powerMobileBtn.textContent = checked ? 'On' : 'Off';
+      powerMobileBtn.classList.toggle("on", checked);
+      powerMobileBtn.classList.toggle("off", !checked);
+      powerMobileBtn.setAttribute("aria-pressed", String(checked));
+      powerMobileBtn.textContent = checked ? "On" : "Off";
     }
     await postJson("/command", { command: cmd });
   });
 }
 
-// Mobile / unified button handler
 if (powerMobileBtn) {
-  powerMobileBtn.addEventListener('click', async () => {
-    // toggle visual state immediately
-    const isOn = powerMobileBtn.classList.contains('on');
+  powerMobileBtn.addEventListener("click", async () => {
+    const isOn = powerMobileBtn.classList.contains("on");
     const newState = !isOn;
-    powerMobileBtn.classList.toggle('on', newState);
-    powerMobileBtn.classList.toggle('off', !newState);
-    powerMobileBtn.setAttribute('aria-pressed', String(newState));
-    powerMobileBtn.textContent = newState ? 'On' : 'Off';
-    // also sync the hidden checkbox to keep polling logic simple
+    powerMobileBtn.classList.toggle("on", newState);
+    powerMobileBtn.classList.toggle("off", !newState);
+    powerMobileBtn.setAttribute("aria-pressed", String(newState));
+    powerMobileBtn.textContent = newState ? "On" : "Off";
+
     if (powerCheckbox) {
       ignorePowerCheckboxChange = true;
       powerCheckbox.checked = newState;
-      setTimeout(() => { ignorePowerCheckboxChange = false; }, 0);
+      setTimeout(() => {
+        ignorePowerCheckboxChange = false;
+      }, 0);
     }
-    const cmd = newState ? 'power_on' : 'power_off';
-    await postJson('/command', { command: cmd });
+    const cmd = newState ? "power_on" : "power_off";
+    await postJson("/command", { command: cmd });
   });
 }
 
-// Movement controls (scope to .ps-controls to avoid colliding with other buttons)
+// ================= Movement controls (UI + Gamepad reuse) =================
+async function handleDirection(direction) {
+  console.log("Direction:", direction);
+  await postJson("/command", { command: direction });
+
+  const btn = document.querySelector(
+    `.ps-controls [data-direction="${direction}"]`
+  );
+  if (btn) {
+    btn.classList.add("pressed");
+    setTimeout(() => btn.classList.remove("pressed"), 150);
+  }
+}
+
 document.querySelectorAll(".ps-controls [data-direction]").forEach((btn) => {
-  // guard to prevent double-send while a press is being handled
   let sending = false;
   const sendCommand = async () => {
     if (sending) return;
     sending = true;
     const command = btn.getAttribute("data-direction");
-    btn.classList.add("pressed");
-    try {
-      await postJson("/command", { command });
-    } catch (e) {
-      // ignore
-    } finally {
-      setTimeout(() => {
-        btn.classList.remove("pressed");
-        sending = false;
-      }, 150);
-    }
+    await handleDirection(command);
+    setTimeout(() => {
+      sending = false;
+    }, 150);
   };
 
-  // pointerdown handles touch/mouse immediately (avoids 300ms delays on some browsers)
   btn.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     sendCommand();
   });
 
-  // keyboard accessibility
   btn.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -94,7 +98,7 @@ document.querySelectorAll(".ps-controls [data-direction]").forEach((btn) => {
   });
 });
 
-// Mode selector (buttons are .chip.mode-button inside .mode-selector)
+// ================= Mode selector =================
 function setActiveModeButton(mode) {
   document
     .querySelectorAll(".mode-selector .mode-button")
@@ -110,18 +114,116 @@ document.querySelectorAll(".mode-selector .mode-button").forEach((btn) =>
       .forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     const mode = btn.getAttribute("data-mode");
-    // optimistic local override for a few seconds to avoid poll clobbering the UI
     localModeOverride.mode = mode;
-    localModeOverride.expires = Date.now() + 5000; // 5 seconds
-    const label =
-      "Current Mode: " + mode.charAt(0).toUpperCase() + mode.slice(1);
+    localModeOverride.expires = Date.now() + 5000;
+
+    const label = "Current Mode: " + mode.charAt(0).toUpperCase() + mode.slice(1);
     const cm = document.getElementById("current-mode");
     if (cm) cm.textContent = label;
     await postJson("/command", { command: "mode_change", mode });
   })
 );
 
-// Poll telemetry
+// ================= Gamepad Support =================
+let gamepadIndex = null;
+let prevButtons = [];
+let lastAxisCommand = null;
+
+window.addEventListener("gamepadconnected", (e) => {
+  console.log("Gamepad connected:", e.gamepad);
+  gamepadIndex = e.gamepad.index;
+});
+
+window.addEventListener("gamepaddisconnected", (e) => {
+  console.log("Gamepad disconnected:", e.gamepad);
+  gamepadIndex = null;
+});
+
+function pollGamepad() {
+  if (gamepadIndex !== null) {
+    const gp = navigator.getGamepads()[gamepadIndex];
+    if (gp) {
+      // --- Buttons ---
+      gp.buttons.forEach((btn, i) => {
+        if (btn.pressed && !prevButtons[i]) {
+          handleButtonPress(i);
+        }
+      });
+
+      // --- D-Pad ---
+      console.log("D-Pad state:", {
+        up: gp.buttons[12]?.pressed,
+        down: gp.buttons[13]?.pressed,
+        left: gp.buttons[14]?.pressed,
+        right: gp.buttons[15]?.pressed,
+      });
+
+      if (gp.buttons[12]?.pressed) handleDirection("forward");
+      if (gp.buttons[13]?.pressed) handleDirection("backward");
+      if (gp.buttons[14]?.pressed) handleDirection("left");
+      if (gp.buttons[15]?.pressed) handleDirection("right");
+
+      // --- Left Stick ---
+      const x = gp.axes[0];
+      const y = gp.axes[1];
+      const deadzone = 0.4;
+      let axisCommand = null;
+
+      if (Math.abs(x) > Math.abs(y)) {
+        if (x > deadzone) axisCommand = "right";
+        else if (x < -deadzone) axisCommand = "left";
+      } else {
+        if (y > deadzone) axisCommand = "backward";
+        else if (y < -deadzone) axisCommand = "forward";
+      }
+
+      if (axisCommand && axisCommand !== lastAxisCommand) {
+        handleDirection(axisCommand);
+        lastAxisCommand = axisCommand;
+      }
+      if (!axisCommand) {
+        lastAxisCommand = null;
+      }
+
+      prevButtons = gp.buttons.map((b) => b.pressed);
+    }
+  }
+  requestAnimationFrame(pollGamepad);
+}
+pollGamepad();
+
+async function handleButtonPress(index) {
+  switch (index) {
+    case 2: // X
+      console.log("X pressed → toggle power");
+      if (powerCheckbox) {
+        powerCheckbox.checked = !powerCheckbox.checked;
+        powerCheckbox.dispatchEvent(new Event("change"));
+      }
+      break;
+    case 3: // Y
+      console.log("Y pressed → Manual mode");
+      await postJson("/command", { command: "mode_change", mode: "manual" });
+      setActiveModeButton("manual");
+      break;
+    case 1: // B
+      console.log("B pressed → Assisted mode");
+      await postJson("/command", { command: "mode_change", mode: "assisted" });
+      setActiveModeButton("assisted");
+      break;
+    case 0: // A
+      console.log("A pressed → Autonomous mode");
+      await postJson("/command", { command: "mode_change", mode: "autonomous" });
+      setActiveModeButton("autonomous");
+      break;
+    case 9: // Start/Pause
+      console.log("Pause pressed → STOP");
+      await postJson("/command", { command: "stop" });
+      break;
+  }
+}
+
+// ================= Poll telemetry (unchanged) =================
 async function poll() {
   try {
     const res = await fetch("/api/data");
@@ -132,28 +234,23 @@ async function poll() {
       ps.textContent = "Rover Power: " + (power ? "ON" : "OFF");
       ps.classList.toggle("on", power);
       ps.classList.toggle("off", !power);
-      // sync the checkbox without triggering its handler
       if (powerCheckbox) {
         ignorePowerCheckboxChange = true;
         powerCheckbox.checked = power;
-        // allow the event loop to clear the ignore flag
         setTimeout(() => {
           ignorePowerCheckboxChange = false;
         }, 0);
       }
     }
-    // Update unified power button so UI stays in sync
     if (powerMobileBtn) {
-      powerMobileBtn.classList.toggle('on', power);
-      powerMobileBtn.classList.toggle('off', !power);
-      powerMobileBtn.setAttribute('aria-pressed', String(power));
-      powerMobileBtn.textContent = power ? 'On' : 'Off';
+      powerMobileBtn.classList.toggle("on", power);
+      powerMobileBtn.classList.toggle("off", !power);
+      powerMobileBtn.setAttribute("aria-pressed", String(power));
+      powerMobileBtn.textContent = power ? "On" : "Off";
     }
     if (data.mode) {
-      // If we have a recent local override, prefer it until it expires unless server confirms the change
       if (localModeOverride.mode && Date.now() < localModeOverride.expires) {
         if (data.mode === localModeOverride.mode) {
-          // server confirms, clear override and sync UI
           localModeOverride.mode = null;
           localModeOverride.expires = 0;
           setActiveModeButton(data.mode);
@@ -163,11 +260,8 @@ async function poll() {
               "Current Mode: " +
               String(data.mode).charAt(0).toUpperCase() +
               String(data.mode).slice(1);
-        } else {
-          // still waiting for server — do not overwrite local UI
         }
       } else {
-        // No override in effect — update UI from server
         setActiveModeButton(data.mode);
         const cm = document.getElementById("current-mode");
         if (cm)
@@ -182,7 +276,6 @@ async function poll() {
       if (ls) ls.textContent = "Last Seen: " + data.last_seen;
     }
     if (power) {
-      // support multiple possible field names coming from MQTT vs CSV
       const forward =
         data.forward_distance_cm !== undefined
           ? data.forward_distance_cm

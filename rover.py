@@ -1,17 +1,100 @@
 # rover.py
 # The complete code for the "Odyssey" mobile rover unit.
 
-import paho.mqtt.client as mqtt
-import RPi.GPIO as GPIO
+try:
+    import paho.mqtt.client as mqtt
+except Exception as e:
+    raise ImportError("paho-mqtt is required. Install with 'pip install paho-mqtt'") from e
 import time
 import json
 import ssl
-import board
-import busio
-import adafruit_dht
-import adafruit_ads1x15.ads1115 as ADS
-from adafruit_ads1x15.analog_in import AnalogIn
 import threading
+
+# Try to import Raspberry Pi specific libraries. If unavailable (development
+# machine), provide lightweight mocks so the rover logic and MQTT can be
+# exercised without hardware.
+HARDWARE_AVAILABLE = True
+try:
+    import RPi.GPIO as GPIO
+    import board
+    import busio
+    import adafruit_dht
+    import adafruit_ads1x15.ads1115 as ADS
+    from adafruit_ads1x15.analog_in import AnalogIn
+except Exception as _e:
+    HARDWARE_AVAILABLE = False
+    print(f"Hardware libraries not available, running in simulation mode: {_e}")
+
+    class _DummyPWM:
+        def __init__(self, pin, freq):
+            self.pin = pin
+        def start(self, duty):
+            pass
+        def ChangeDutyCycle(self, d):
+            pass
+        def stop(self):
+            pass
+
+    class _DummyGPIO:
+        BCM = 0
+        OUT = 1
+        IN = 2
+        LOW = 0
+        HIGH = 1
+
+        def setmode(self, mode):
+            pass
+        def setwarnings(self, flag):
+            pass
+        def setup(self, pins, direction, initial=None):
+            pass
+        def PWM(self, pin, freq):
+            return _DummyPWM(pin, freq)
+        def output(self, pins, value):
+            pass
+        def input(self, pin):
+            # simulate no echo for ultrasonic
+            return 0
+        def cleanup(self):
+            pass
+
+    GPIO = _DummyGPIO()
+
+    class board:
+        SCL = 'SCL'
+        SDA = 'SDA'
+        # allow getattr(board, 'D7') style access
+        def __getattr__(self, name):
+            return name
+
+    class busio:
+        class I2C:
+            def __init__(self, scl, sda):
+                pass
+
+    class adafruit_dht:
+        class DHT22:
+            def __init__(self, pin, use_pulseio=False):
+                self._temp = None
+                self._hum = None
+            @property
+            def temperature(self):
+                return None
+            @property
+            def humidity(self):
+                return None
+            def exit(self):
+                pass
+
+    class ADS:
+        class ADS1115:
+            def __init__(self, i2c):
+                pass
+        P0 = 0
+
+    class AnalogIn:
+        def __init__(self, ads, channel):
+            self.value = 32000
 
 # --- Pin Definitions (BCM Mode) ---
 # L298N Motor Driver
@@ -41,6 +124,16 @@ MQTT_PASSWORD = "Odyssey2"
 MQTT_TOPIC_TELEMETRY = "rover/telemetry"
 MQTT_TOPIC_COMMAND = "rover/command"
 SAFE_DISTANCE_CM = 25
+# If True, the left motor wiring/orientation is reversed relative to the
+# right motor. Set to True if left wheels spin opposite to right for the
+# same positive speed value.
+LEFT_MOTOR_INVERT = True
+# Duration (seconds) to execute manual movement commands before auto-stopping
+COMMAND_DURATION = 3.0
+# If True, the left and right motor channels are swapped (i.e. left
+# commands control the right motor hardware and vice-versa). Enable this
+# if your motor wiring maps channels to the opposite sides.
+SWAP_MOTORS = True
 
 class Rover:
     def __init__(self):
@@ -77,8 +170,10 @@ class Rover:
 
         # Lightweight lock to protect state accessed from MQTT callbacks and main loop
         self.state_lock = threading.Lock()
+        # Track manual command timing: (command_str, start_time)
+        self.command_timer = None
 
-        # MQTT Client Setup
+        # MQTT Client Setup (paho-mqtt is required)
         self.mqtt_client = mqtt.Client(client_id="OdysseyRover")
         # Last-Will: if rover drops unexpectedly, broker will publish OFF retained state
         self.mqtt_client.will_set(MQTT_TOPIC_TELEMETRY, payload=json.dumps({"power": False, "power_state": "OFF", "mode": self.mode}), qos=1, retain=True)
@@ -88,6 +183,16 @@ class Rover:
         self.mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
         self.mqtt_client.tls_set(tls_version=ssl.PROTOCOL_TLS)
 
+        # Try to connect the MQTT client immediately so the rover can receive
+        # `power_on` commands even when internal power_state is OFF. Subscriptions
+        # are performed in on_connect.
+        try:
+            self.mqtt_client.connect(MQTT_BROKER_HOSTNAME, MQTT_BROKER_PORT, 60)
+            # start network loop in background
+            self.mqtt_client.loop_start()
+        except Exception as e:
+            print(f"Initial MQTT connect failed (will retry on power_on/disconnect): {e}")
+
         # Reconnect control
         self.reconnect_thread = None
         self._reconnect_stop = threading.Event()
@@ -95,23 +200,23 @@ class Rover:
 
     def on_disconnect(self, client, userdata, rc):
         print(f"MQTT disconnected (rc={rc})")
-        # If disconnect was unexpected and rover is powered, try to reconnect in background
+        # If disconnect was unexpected, try to reconnect in background so the
+        # dashboard can still send a `power_on` command even while the rover
+        # is powered OFF. Start the reconnect thread unconditionally on
+        # unexpected disconnects.
         if rc != 0:
-            with self.state_lock:
-                powered = (self.power_state == "ON")
-            if powered:
-                # start reconnect thread if not already running
-                if not self.reconnect_thread or not self.reconnect_thread.is_alive():
-                    self._reconnect_stop.clear()
-                    self.reconnect_thread = threading.Thread(target=self._reconnect_loop, daemon=True)
-                    self.reconnect_thread.start()
+            # start reconnect thread if not already running
+            if not self.reconnect_thread or not self.reconnect_thread.is_alive():
+                self._reconnect_stop.clear()
+                self.reconnect_thread = threading.Thread(target=self._reconnect_loop, daemon=True)
+                self.reconnect_thread.start()
 
     def _reconnect_loop(self):
         backoff = 1.0
+        # Keep trying to reconnect until stopped explicitly or reconnect
+        # succeeds. We intentionally do NOT bail out when power_state is
+        # OFF so the rover remains reachable from the dashboard.
         while not self._reconnect_stop.is_set():
-            with self.state_lock:
-                if self.power_state != "ON":
-                    break
             try:
                 print(f"Attempting MQTT reconnect (backoff={backoff}s)...")
                 self.mqtt_client.reconnect()
@@ -122,6 +227,7 @@ class Rover:
                 print(f"MQTT reconnect failed: {e}")
                 time.sleep(backoff)
                 backoff = min(backoff * 2, 30)
+        # mark stopped
         self._reconnect_stop.set()
 
     def on_connect(self, client, userdata, flags, reason_code, properties=None):
@@ -180,8 +286,13 @@ class Rover:
 
             # store last_command (no complex parsing here)
             with self.state_lock:
-                if self.mode in ["manual", "assisted"]:
-                    self.last_command = command
+                    if self.mode in ["manual", "assisted"]:
+                        self.last_command = command
+                        # If in manual mode, start a timer so movement only lasts
+                        # for COMMAND_DURATION seconds. Assisted/autonomous keep
+                        # their existing behavior.
+                        if self.mode == "manual":
+                            self.command_timer = (command, time.time())
         except Exception as e:
             print(f"Error processing MQTT message: {e}")
 
@@ -222,21 +333,15 @@ class Rover:
         if self.power_state == "OFF": return
         print("Powering OFF rover systems...")
         self.power_state = "OFF"; self.stop(); self.pwm_left.stop(); self.pwm_right.stop()
-        # stop any reconnect attempts
-        try:
-            self._reconnect_stop.set()
-        except Exception:
-            pass
         try:
             # publish a final OFF state (boolean) so the server/front-end knows rover is offline (retained)
             self.mqtt_client.publish(MQTT_TOPIC_TELEMETRY, json.dumps({"power": False, "power_state": "OFF", "mode": self.mode}), qos=1, retain=True)
             time.sleep(0.1)
         except Exception as e:
             print(f"Could not publish final OFF state: {e}")
-        try:
-            self.mqtt_client.loop_stop(); self.mqtt_client.disconnect()
-        except Exception:
-            pass
+        # Important: keep the MQTT client running and subscribed so the
+        # dashboard can send `power_on` commands. Do not call loop_stop() or
+        # disconnect() here.
         GPIO.output(MODE_LEDS, GPIO.LOW)
 
     # no button callback — power is controlled via code or MQTT commands
@@ -246,9 +351,20 @@ class Rover:
         GPIO.output([IN1, IN2, IN3, IN4], GPIO.LOW)
 
     def move(self, left_speed, right_speed):
-        if left_speed > 0: GPIO.output(IN1, GPIO.HIGH); GPIO.output(IN2, GPIO.LOW)
-        else: GPIO.output(IN1, GPIO.LOW); GPIO.output(IN2, GPIO.HIGH)
-        self.pwm_left.ChangeDutyCycle(abs(left_speed))
+        # Allow swapping channels in case wiring maps left->right and right->left
+        if SWAP_MOTORS:
+            left_speed, right_speed = right_speed, left_speed
+
+        # Apply left motor inversion if configured so a positive left_speed
+        # produces the same forward motion as a positive right_speed.
+        ls = -left_speed if LEFT_MOTOR_INVERT else left_speed
+        if ls > 0:
+            GPIO.output(IN1, GPIO.HIGH)
+            GPIO.output(IN2, GPIO.LOW)
+        else:
+            GPIO.output(IN1, GPIO.LOW)
+            GPIO.output(IN2, GPIO.HIGH)
+        self.pwm_left.ChangeDutyCycle(abs(ls))
         if right_speed > 0: GPIO.output(IN3, GPIO.HIGH); GPIO.output(IN4, GPIO.LOW)
         else: GPIO.output(IN3, GPIO.LOW); GPIO.output(IN4, GPIO.HIGH)
         self.pwm_right.ChangeDutyCycle(abs(right_speed))
@@ -338,11 +454,28 @@ class Rover:
                         current_command = self.last_command
 
                     if current_mode == "manual":
-                        if current_command == "forward": self.move(80, 80)
-                        elif current_command == "backward": self.move(-80, -80)
-                        elif current_command == "left": self.move(-70, 70)
-                        elif current_command == "right": self.move(70, -70)
-                        else: self.stop()
+                        # If a manual command has a timer, ensure it only runs for
+                        # COMMAND_DURATION seconds before auto-stopping.
+                        run_command = current_command
+                        if self.command_timer and self.command_timer[0] == current_command:
+                            elapsed = time.time() - self.command_timer[1]
+                            if elapsed >= COMMAND_DURATION:
+                                run_command = "stop"
+                                # clear timer and last_command
+                                with self.state_lock:
+                                    self.last_command = "stop"
+                                    self.command_timer = None
+
+                        if run_command == "forward":
+                            self.move(80, 80)
+                        elif run_command == "backward":
+                            self.move(-80, -80)
+                        elif run_command == "left":
+                            self.move(-70, 70)
+                        elif run_command == "right":
+                            self.move(70, -70)
+                        else:
+                            self.stop()
                     elif current_mode == "assisted":
                         if distance_val is not None and distance_val <= SAFE_DISTANCE_CM and current_command == "forward":
                             self.stop()
