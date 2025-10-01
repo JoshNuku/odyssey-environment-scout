@@ -1,226 +1,356 @@
 :root {
-    --bg:#0b1220; 
-    --panel:#111a2e; 
-    --muted:#6b7590; 
-    --accent:#5b8cff; 
-    --accent2:#22d3ee; 
-    --danger:#ef4444; 
-    --ok:#16a34a; 
+  --bg: #0b1220;
+  --panel: #111a2e;
+  --muted: #6b7590;
+  --accent: #5b8cff;
+  --accent2: #22d3ee;
+  --danger: #ef4444;
+  --ok: #16a34a;
 }
-* { 
-    box-sizing: border-box; 
+* {
+  box-sizing: border-box;
 }
 body {
-    margin:0; font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; 
-    background: var(--bg); 
-    color: #e6eaf2; 
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  background: var(--bg);
+  color: #e6eaf2;
 }
 
 .layout {
-    display:flex; 
-    min-height:100vh; 
+  display: flex;
+  min-height: 100vh;
 }
 
 .sidebar {
-    width: 320px; 
-    background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%); 
-    border-right: 1px solid rgba(255,255,255,0.06); 
-    padding: 24px; 
-    display:flex; 
-    flex-direction:column; 
-    gap:16px; 
+  width: 320px;
+  background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .brand {
-    font-weight: 700; 
-    letter-spacing: .5px; 
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
-.search input { 
-    width: 100%; 
-    background: #0e1628; 
-    border: 1px solid rgba(255,255,255,0.08); 
-    border-radius: 10px; 
-    padding: 10px 12px; 
-    color:#e6eaf2; 
+.search input {
+  width: 100%;
+  background: #0e1628;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #e6eaf2;
 }
 .menu {
-    display:flex; 
-    flex-direction:column; 
-    gap:6px; 
-    margin: 6px 0 8px; 
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 8px;
 }
 .menu-item {
-    padding:10px 12px; 
-    border-radius: 10px; 
-    color:#c7d0e5; 
-    cursor:pointer; 
-    text-decoration:none; 
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #c7d0e5;
+  cursor: pointer;
+  text-decoration: none;
 }
-.menu-item.active, .menu-item:hover {
-    background: rgba(91,140,255,.12); 
-    color:#ffffff; 
+.menu-item.active,
+.menu-item:hover {
+  background: rgba(91, 140, 255, 0.12);
+  color: #ffffff;
 }
 
 .panel-title {
-    font-size: 13px; 
-    color: var(--muted); 
-    margin-top: 8px; 
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
 }
 
 .ps-controls {
-    display:flex; 
-    flex-direction:column; 
-    align-items:center; 
-    gap:14px; 
-    padding:14px; 
-    background: #0e1628; 
-    border: 1px solid rgba(255,255,255,.06); 
-    border-radius: 14px; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: #0e1628;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
 }
 .dpad {
-    display:flex; 
-    flex-direction:column; 
-    align-items:center; 
-    gap:10px; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 .dpad-middle {
-    display:flex; 
-    gap:10px; 
+  display: flex;
+  gap: 10px;
 }
 .btn {
-    border:none; 
-    border-radius:12px; 
-    background: linear-gradient(180deg,#1b2540,#0f172a); 
-    color:#fff; 
-    width:56px; 
-    height:56px; 
-    display:inline-flex; 
-    align-items:center; 
-    justify-content:center; 
-    cursor:pointer; 
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 8px 20px rgba(0,0,0,.35); 
-    transition: transform .05s ease, filter .15s ease, background .2s ease; 
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1b2540, #0f172a);
+  color: #fff;
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.05s ease, filter 0.15s ease, background 0.2s ease;
 }
 .btn.pressed {
-    transform: scale(.95); 
-    filter: brightness(1.2); 
+  transform: scale(0.95);
+  filter: brightness(1.2);
 }
 .btn.stop {
-    width: 100%; 
-    height:44px; 
-    border-radius: 999px; 
-    background: linear-gradient(180deg,#ef4444,#b91c1c); 
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(239,68,68,.35); 
+  width: 100%;
+  height: 44px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ef4444, #b91c1c);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 10px 30px rgba(239, 68, 68, 0.35);
 }
 
 .mode-selector {
-    display: flex; 
-    gap: 8px; 
-    flex-wrap:wrap; 
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .chip {
-    border: 1px solid rgba(255,255,255,.08); 
-    background:#0e1628; color:#c7d0e5; 
-    padding:8px 12px; 
-    border-radius:999px; 
-    cursor:pointer; 
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0e1628;
+  color: #c7d0e5;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
 }
-.chip.active, .chip:hover {
-    background: rgba(91,140,255,.15); 
-    color:#fff; 
-    border-color: rgba(91,140,255,.35); 
+.chip.active,
+.chip:hover {
+  background: rgba(91, 140, 255, 0.15);
+  color: #fff;
+  border-color: rgba(91, 140, 255, 0.35);
 }
 
 .content {
-    flex:1; 
-    display:flex; 
-    flex-direction:column; 
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .topbar {
-    height:64px; 
-    display:flex; 
-    align-items:center; 
-    gap:12px; 
-    padding:0 24px; 
-    border-bottom:1px solid rgba(255,255,255,.06); 
-    background: rgba(13,19,38,.6); 
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px); 
-    position: sticky; 
-    top:0; 
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(13, 19, 38, 0.6);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
 }
 .topbar .title {
-    font-weight:600; 
+  font-weight: 600;
 }
 .topbar .spacer {
-    flex:1; 
+  flex: 1;
 }
 .topbar .link {
-    background: transparent; 
-    border:1px solid rgba(255,255,255,.08); 
-    color:#c7d0e5; 
-    padding:8px 12px; 
-    border-radius:  10px; 
-    cursor: pointer; 
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #c7d0e5;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
 }
 .topbar .link:hover {
-    background: rgba(255,255,255,.06); 
-    color:#fff; 
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+/* iOS-style toggle */
+.ios-toggle {
+  display: inline-block;
+  width: 56px; /* slightly smaller for mobile */
+  height: 30px;
+  position: relative;
+  vertical-align: middle;
+  cursor: pointer;
+  z-index: 2;
+}
+.ios-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.ios-slider {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #0b1220, #0f172a);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.ios-slider:before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(180deg, #ffffff, #e6eaf2);
+  border-radius: 50%;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.ios-toggle input:checked + .ios-slider {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-color: rgba(91, 140, 255, 0.6);
+  box-shadow: 0 6px 18px rgba(91, 140, 255, 0.12);
+}
+.ios-toggle input:checked + .ios-slider:before {
+  transform: translateX(26px);
+}
+.ios-toggle input:focus + .ios-slider {
+  outline: 3px solid rgba(91, 140, 255, 0.12);
+}
+.ios-toggle[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* make the toggle easier to tap on mobile */
+.ios-toggle,
+.ios-toggle .ios-slider:before {
+  touch-action: manipulation;
+}
+
+/* small alignment tweak to keep toggle inline with other header links */
+.topbar .ios-toggle {
+  margin-right: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.power-label {
+  margin-right: 6px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .cards {
-    display:grid; 
-    grid-template-columns: repeat(12, 1fr); 
-    gap:16px; 
-    padding: 16px 24px 32px; 
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  padding: 16px 24px 32px;
 }
 .card {
-    grid-column: span 6; 
-    background: var(--panel); 
-    border: 1px solid rgba(255,255,255,.06); 
-    border-radius: 16px; 
-    padding: 16px; 
-    box-shadow: 0 10px 30px rgba(0,0,0,.35); 
+  grid-column: span 6;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 .card h3 {
-    margin: 6px 0 12px; 
-    font-size: 16px; 
+  margin: 6px 0 12px;
+  font-size: 16px;
 }
 .card.status .power.on {
-    color: var(--ok); 
-    font-weight: 700; }
+  color: var(--ok);
+  font-weight: 700;
+}
 .card.status .power.off {
-    color: var(--danger); 
-    font-weight: 700; }
+  color: var(--danger);
+  font-weight: 700;
+}
 .kv {
-    list-style:none; 
-    padding:0; 
-    margin:0; 
-    display:flex; 
-    flex-direction:column; 
-    gap:10px; 
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .kv li {
-    display:flex; 
-    align-items:center; 
-    justify-content:space-between; 
-    padding:10px 12px; 
-    background:#0e1628; 
-    border:1px solid rgba(255,255,255,.06); 
-    border-radius:12px; 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #0e1628;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+/* mobile power button - hidden on desktop */
+.power-btn-mobile {
+  display: none;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--panel);
+  color: #e6eaf2;
+}
+.power-btn-mobile.on {
+  background: linear-gradient(180deg, #ef4444, #b91c1c);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+  color: #fff;
+}
+.power-btn-mobile.off {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  box-shadow: none;
 }
 
 @media (max-width: 1000px) {
-    .sidebar { width: 260px; }
-    .card { grid-column: span 12; }
+  .sidebar {
+    width: 260px;
+  }
+  .card {
+    grid-column: span 12;
+  }
 }
 
 @media (max-width: 640px) {
-    .layout { 
-        flex-direction:column; 
-    }
-    .sidebar { 
-        width: 100%; 
-        border-right: none; 
-        border-bottom: 1px solid rgba(255,255,255,.06); 
-    }
+  .layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* On small screens move the power toggle to the left of the title for better accessibility */
+  .topbar {
+    align-items: center;
+  }
+  .topbar .ios-toggle {
+    order: -1; /* place before title */
+    margin-right: 12px;
+    width: 56px; /* slightly larger tap target */
+    height: 32px;
+  }
+  .topbar .ios-slider:before {
+    width: 24px;
+    height: 24px;
+    left: 4px;
+    top: 4px;
+  }
+  .topbar .title { order: 0; }
+  .topbar .spacer { order: 2; }
+  .topbar .link { order: 3; }
+  .power-btn-mobile { display: inline-flex; align-items: center; gap: 8px; }
+  /* hide the iOS toggle on small screens to avoid duplicate controls */
+  .topbar .ios-toggle { display: none; }
 }
