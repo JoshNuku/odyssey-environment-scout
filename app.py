@@ -151,64 +151,52 @@ def read_latest_from_csv():
     except Exception:
         return None
 
-def read_series_from_csv(hours: int = 24):
+def read_series_from_csv(limit: int = 300):
     if not DATA_FILE.exists():
         return None
     try:
-        # Expected column names
+        # Prefer pandas for robust CSV parsing; handle files missing the header row by supplying expected column names
         expected = ['timestamp', 'power', 'mode', 'forward_distance', 'temperature', 'humidity', 'air_quality']
         try:
             df = pd.read_csv(DATA_FILE, parse_dates=['timestamp'], keep_default_na=False, na_values=[''])
         except Exception:
             # Try reading without headers (old files may lack them)
             df = pd.read_csv(DATA_FILE, names=expected, header=None, keep_default_na=False, na_values=[''])
-
-        # Ensure expected columns exist
+        # If the file was parsed but doesn't contain expected columns, coerce by re-reading without header
         if not set(expected).issubset(df.columns):
             df = pd.read_csv(DATA_FILE, names=expected, header=None, keep_default_na=False, na_values=[''])
-
-        # Keep only the last `hours` window
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
-        df = df[df['timestamp'] >= cutoff]
-
+        df = df.tail(limit)
         labels = df['timestamp'].astype(str).tolist()
         temps = df['temperature'].replace('', 0).fillna(0).astype(float).tolist()
         hums = df['humidity'].replace('', 0).fillna(0).astype(float).tolist()
         aqs = df['air_quality'].replace('', 0).fillna(0).astype(int).tolist()
         return {'labels': labels, 'temperature_c': temps, 'humidity_percent': hums, 'air_quality_raw': aqs}
     except Exception:
-        # Fallback: parse manually using csv.reader
+        # Fallback: parse manually using csv.reader for malformed files
         try:
             with DATA_FILE.open('r', newline='', encoding='utf-8') as f:
-                rows = list(csv.reader(f))
-            cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+                rows = list(csv.reader(f))[-limit:]
             labels, temps, hums, aqs = [], [], [], []
             for r in rows:
+                # Ensure we have at least 7 columns; pad if necessary
                 while len(r) < 7:
                     r.append('')
-                ts = (r[0] or '').strip()
+                labels.append((r[0] or '').strip())
                 try:
-                    ts_dt = datetime.fromisoformat(ts.replace(" UTC", "+00:00"))
+                    temps.append(float(r[4] or 0))
                 except Exception:
-                    ts_dt = None
-                if ts_dt and ts_dt >= cutoff:
-                    labels.append(ts)
-                    try:
-                        temps.append(float(r[4] or 0))
-                    except Exception:
-                        temps.append(0.0)
-                    try:
-                        hums.append(float(r[5] or 0))
-                    except Exception:
-                        hums.append(0.0)
-                    try:
-                        aqs.append(int(float(r[6] or 0)))
-                    except Exception:
-                        aqs.append(0)
+                    temps.append(0.0)
+                try:
+                    hums.append(float(r[5] or 0))
+                except Exception:
+                    hums.append(0.0)
+                try:
+                    aqs.append(int(float(r[6] or 0)))
+                except Exception:
+                    aqs.append(0)
             return {'labels': labels, 'temperature_c': temps, 'humidity_percent': hums, 'air_quality_raw': aqs}
         except Exception:
             return None
-
 
 # --- Flask Routes ---
 @app.route('/')

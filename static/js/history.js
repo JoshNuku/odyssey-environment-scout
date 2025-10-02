@@ -2,31 +2,6 @@ async function loadHistory() {
   const res = await fetch("/api/history");
   const data = await res.json();
   const labels = data.labels || [];
-
-  const chartOptions = {
-    responsive: true,
-    scales: {
-      x: {
-        type: "time",
-        time: {
-          unit: "hour",        // ✅ show hourly ticks
-          stepSize: 1,         // ✅ one tick per hour
-          tooltipFormat: "MMM d, HH:mm",
-          displayFormats: {
-            hour: "HH:mm",     // ✅ axis label format (24h clock)
-          },
-        },
-        title: {
-          display: true,
-          text: "Time (Last 24 Hours)",
-        },
-      },
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
-
   const ctx1 = document.getElementById("tempChart");
   new Chart(ctx1, {
     type: "line",
@@ -41,7 +16,9 @@ async function loadHistory() {
         },
       ],
     },
-    options: chartOptions,
+    options: {
+      responsive: true,
+    },
   });
 
   const ctx2 = document.getElementById("humChart");
@@ -58,7 +35,9 @@ async function loadHistory() {
         },
       ],
     },
-    options: chartOptions,
+    options: {
+      responsive: true,
+    },
   });
 
   const ctx3 = document.getElementById("aqChart");
@@ -75,8 +54,9 @@ async function loadHistory() {
         },
       ],
     },
-    options: chartOptions,
+    options: {
+      responsive: true,
+    },
   });
 }
-
 loadHistory();
